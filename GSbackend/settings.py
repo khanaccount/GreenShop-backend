@@ -116,7 +116,7 @@ DATABASES = {
         "USER": "postgres",
         "PASSWORD": "yOPFtCYwhUbpXdjjeCmsjnDMPovEvCCz",
         "HOST": "monorail.proxy.rlwy.net",
-        "PORT": "52922",
+        "PORT": "37593",
     }
 }
 
