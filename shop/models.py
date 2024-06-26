@@ -151,6 +151,9 @@ class Product(models.Model):
             )
         else:
             self.salePrice = self.mainPrice
+        
+        self.create_product_quantity(self)
+
         super(Product, self).save()
 
     def update_reviews_info(self):
@@ -163,9 +166,13 @@ class Product(models.Model):
         self.save()
 
     def create_product_quantity(self):
+        productQuantitys = ProductQuantity.objects.filter(product=self)
+
+        if len(productQuantitys) > 0:
+            return
+            
         sizes = self.size.all()
 
-        print(sizes)
 
         for size in sizes:
             productQuantity = ProductQuantity(product=self, size=size)
