@@ -25,7 +25,12 @@ SECRET_KEY = "django-insecure-18!4ua=6*k!^tdi-d!9dy5t)!=7vzq9_rili%#xfj+h_y=)(k^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = [
+#     "greenshopbackend-production-e407.up.railway.app",
+#     "your-app-name.herokuapp.com",
+# ]
+
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -37,10 +42,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # Rest API
     "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "corsheaders",
+    # Local
     "shop",
 ]
 
@@ -66,10 +73,16 @@ REST_FRAMEWORK = {
     "NON_FIELD_ERRORS_KEY": "error",
 }
 
-CORS_ORIGIN_ALLOW_ALL = False
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "https://greenshopbackend.up.railway.app",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://greenshopbackend.up.railway.app",
 ]
 
 ROOT_URLCONF = "GSbackend.urls"
@@ -98,8 +111,12 @@ WSGI_APPLICATION = "GSbackend.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "railway",
+        "USER": "postgres",
+        "PASSWORD": "fadbc6*g**d*Gg53e-FAE622FDD-BAFd",
+        "HOST": "viaduct.proxy.rlwy.net",
+        "PORT": "52922",
     }
 }
 
@@ -138,7 +155,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -152,7 +171,6 @@ STATICFILES_DIRS = [
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-STATIC_ROOT = "/var/www/example.com/static/"
 
 AUTH_USER_MODEL = "shop.Customer"
 
@@ -190,6 +208,8 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
 
+# email from data
+
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.yandex.ru"
 EMAIL_PORT = 465
@@ -198,3 +218,6 @@ EMAIL_HOST_PASSWORD = "cmrmwcynrwtirkhz"
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
 DEFAULT_FROM_EMAIL = "HoverGovi@yandex.ru"
+
+
+# AUTHENTICATION_FAILURE = "Ваше сообщение об ошибке для неактивированного аккаунта."

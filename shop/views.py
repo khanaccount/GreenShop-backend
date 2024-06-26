@@ -10,6 +10,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
 from django.http import Http404
 from django.db import transaction
+from django.shortcuts import redirect
 
 from .utils import Util
 
@@ -68,7 +69,7 @@ class CustomerView(APIView):
         }
 
         if customer.profileImg:
-            output["profileImg"] = customer.profileImg
+            output["profileImg"] = customer.profileImg.url
         else:
             output["profileImg"] = None
         return Response(output)
@@ -118,15 +119,15 @@ class ProductView(APIView):
             {
                 "id": output.id,
                 "name": output.name,
-                "mainPrice": "{:.2f}Р".format(output.mainPrice),
-                "salePrice": "{:.2f}Р".format(output.salePrice),
+                "mainPrice": "${:.2f}".format(output.mainPrice),
+                "salePrice": "${:.2f}".format(output.salePrice),
                 "discount": output.discount,
                 "discountPercentage": output.discountPercentage,
                 "review": output.reviewCount,
                 "rating": output.rating,
                 "size": SizeSerializer(output.size, many=True).data,
                 "categories": CategorySerializer(output.categories).data,
-                "mainImg": output.mainImg,
+                "mainImg": output.mainImg.url,
                 "newArriwals": output.newArriwals,
             }
             for output in Product.objects.all()
@@ -171,13 +172,13 @@ class ProductCardView(APIView):
             {
                 "id": product.id,
                 "name": product.name,
-                "salePrice": "{:.2f}Р".format(product.salePrice),
+                "salePrice": "${:.2f}".format(product.salePrice),
                 "reviewCount": product.reviewCount,
                 "rating": product.rating,
                 "size": size,
                 "categories": CategorySerializer(product.categories).data,
                 "sku": product.sku,
-                "mainImg": product.mainImg,
+                "mainImg": product.mainImg.url,
                 "reviews": reviews,
                 "shortDescriptionInfo": product.shortDescriptionInfo,
                 "descriptionInfo": product.descriptionInfo,
@@ -206,23 +207,46 @@ class OrderView(APIView):
 
     def get(self, request):
         # Получение списка заказов и их преобразование в json
-        output = [
-            {
-                "id": output.id,
-                "customer": CustomerSerializer(output.customer).data,
-                "date": output.date,
-                "isCompleted": output.isCompleted,
-            }
-            for output in Order.objects.all()
-        ]
-        return Response(output)
+        customer = request.user
+        orders = Order.objects.filter(customer=customer, isCompleted=True)[::-1][:10]
 
-    def post(self, request):
-        # Создание нового заказа
-        serializer = OrderSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(serializer.data)
+        data = []
+
+        for order in orders:
+            if order.totalPrice == 0:
+                continue
+            orderData = {
+                "id": order.id,
+                "subtotalPrice": "${:.2f}".format(order.subtotalPrice),
+                "shippingPrice": "${:.2f}".format(order.shippingPrice),
+                "totalPrice": "${:.2f}".format(order.totalPrice),
+                "product": [],
+            }
+            for orderItem in OrderItem.objects.filter(order=order):
+                orderData["product"].append(
+                    {
+                        "id": orderItem.product.id,
+                        "name": orderItem.product.name,
+                        "sku": orderItem.product.sku,
+                        "salePrice": orderItem.product.salePrice,
+                        "quantity": orderItem.quantity,
+                        "totalPrice": "${:.2f}".format(
+                            orderItem.quantity * orderItem.product.salePrice
+                        ),
+                        "mainImg": orderItem.product.mainImg.url,
+                        "size": SizeSerializer(orderItem.size).data,
+                    }
+                )
+            data.append(orderData)
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    # def post(self, request):
+    #     # Создание нового заказа
+    #     serializer = OrderSerializer(data=request.data)
+    #     if serializer.is_valid(raise_exception=True):
+    #         serializer.save()
+    #         return Response(serializer.data)
 
 
 class CartView(RetrieveUpdateDestroyAPIView):
@@ -243,7 +267,7 @@ class CartView(RetrieveUpdateDestroyAPIView):
                 "price": ProductSerializer(output.product).data.get("salePrice"),
                 "quantity": output.quantity,
                 "mainImg": ProductSerializer(output.product).data.get("mainImg"),
-                "totalPrice": "{:.2f}Р".format(
+                "totalPrice": "${:.2f}".format(
                     output.quantity * output.product.salePrice
                 ),
                 "sku": ProductSerializer(output.product).data.get("sku"),
@@ -252,22 +276,22 @@ class CartView(RetrieveUpdateDestroyAPIView):
             for output in orderItem
         ]
         pricesCart = {
-            "subtotalPrice": "{:.2f}Р".format(order.subtotalPrice),
-            "shippingPrice": "{:.2f}Р".format(order.shippingPrice),
-            "totalPrice": "{:.2f}Р".format(order.totalPrice),
+            "subtotalPrice": "${:.2f}".format(order.subtotalPrice),
+            "shippingPrice": "${:.2f}".format(order.shippingPrice),
+            "totalPrice": "${:.2f}".format(order.totalPrice),
             "isUsedCoupon": order.isUsedCoupon,
         }
 
         if order.coupon:
             pricesCart["isFreeDelivery"] = order.coupon.isFreeDelivery
             pricesCart["isDiscountCoupon"] = order.coupon.isDiscountCoupon
-            pricesCart["couponDiscount"] = "{:.2f}Р".format(
+            pricesCart["couponDiscount"] = "${:.2f}".format(
                 order.subtotalPrice - order.totalPrice + order.shippingPrice
             )
         else:
             pricesCart["isFreeDelivery"] = False
             pricesCart["isDiscountCoupon"] = False
-            pricesCart["couponDiscount"] = "0.00Р"
+            pricesCart["couponDiscount"] = "0.00$"
         return Response({"prices": pricesCart, "output": output})
 
 
@@ -293,6 +317,12 @@ class OrderItemView(APIView):
         customer = request.user
         product = Product.objects.get(id=id)
         order = createOrder(customer)
+
+        if OrderItem.objects.filter(order=order).count() >= 50:
+            return Response(
+                {"error": "The order already has 100 or more items"},
+                status=status.HTTP_406_NOT_ACCEPTABLE,
+            )
 
         data = {
             "product": product.pk,
@@ -553,6 +583,10 @@ class VerifyEmail(APIView):
             if not customer.is_active:
                 customer.is_active = True
                 customer.save()
+                external_url = "https://greenshopfrontend-production.up.railway.app/"
+                return redirect(external_url)
+                # external_url = "https://www.example.com/your/success/page/"
+                # return RedirectView.as_view(url=external_url, permanent=False)(request)
             return Response(
                 {"email": "Successfully activated"}, status=status.HTTP_200_OK
             )
@@ -630,6 +664,19 @@ class CustomerEmailChangeRequestView(APIView):
         customer = request.user
         token = RefreshToken.for_user(customer).access_token
 
+        if newEmail == customer.email:
+            return Response(
+                {"error": "This mail is already in use"},
+                status=status.HTTP_406_NOT_ACCEPTABLE,
+            )
+
+        customerEmailChangeRequest = EmailChangeRequest.objects.filter(
+            customer=customer, isConfirmed=False
+        )
+
+        for changeRequest in customerEmailChangeRequest:
+            changeRequest.delete()
+
         emailChangeRequest = EmailChangeRequest.objects.create(
             customer=customer,
             newEmail=newEmail,
@@ -684,10 +731,13 @@ class CustomerConfirmEmailChangeView(APIView):
         customer.save()
         emailChangeRequest.isConfirmed = True
         emailChangeRequest.save()
-        return Response(
-            {"message": "Email change confirmed successfully."},
-            status=status.HTTP_200_OK,
-        )
+
+        external_url = "https://greenshopfrontend-production.up.railway.app/account/"
+        return redirect(external_url)
+        # return Response(
+        #     {"message": "Email change confirmed successfully."},
+        #     status=status.HTTP_200_OK,
+        # )
 
 
 # class CustomerRetrieveUpdateView(RetrieveUpdateAPIView):
@@ -744,11 +794,6 @@ class TransactionViews(APIView):
 
         try:
             order = Order.objects.get(isCompleted=False, customer=customer)
-            order.isCompleted = True
-            order.save()
-
-            Order.objects.create(isCompleted=False, customer=customer)
-
         except:
             return Response(
                 {"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND
@@ -756,45 +801,50 @@ class TransactionViews(APIView):
 
         orderItem = OrderItem.objects.filter(order=order)
 
-        if orderItem is None:
+        if orderItem.count() <= 0:
             return Response(
                 {"error": "There are no product to order in the shopping cart"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         else:
-            serializer = TransactionSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save(shippingAddress=shippingAddress, order=order)
+            try:
+                serializer = TransactionSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save(shippingAddress=shippingAddress, order=order)
+                order.isCompleted = True
+                order.save()
 
-            transaction = Transaction.objects.get(
-                shippingAddress=shippingAddress, order=order
-            )
+                transaction = Transaction.objects.get(
+                    shippingAddress=shippingAddress, order=order
+                )
 
-            orderData = {
-                "id": order.id,
-                "date": transaction.date.strftime("%d %b, %Y"),
-                "totalPrice": "{:.2f}Р".format(order.totalPrice),
-                "shippingPrice": "{:.2f}Р".format(order.shippingPrice),
-                "paymentMethod": transaction.paymentMethod.name,
-            }
-
-            orderItemData = [
-                {
-                    "id": orderItem.product.id,
-                    "name": orderItem.product.name,
-                    "mainImg": orderItem.product.mainImg,
-                    "sku": orderItem.product.sku,
-                    "quantity": orderItem.quantity,
-                    "subtotal": "{:.2f}Р".format(
-                        orderItem.quantity * orderItem.product.salePrice
-                    ),
+                orderData = {
+                    "id": order.id,
+                    "date": transaction.date.strftime("%d %b, %Y"),
+                    "totalPrice": "${:.2f}".format(order.totalPrice),
+                    "shippingPrice": "${:.2f}".format(order.shippingPrice),
+                    "paymentMethod": transaction.paymentMethod.name,
                 }
-                for orderItem in OrderItem.objects.filter(order=order)
-            ]
 
-            data = {"orderData": orderData, "orderItemData": orderItemData}
+                orderItemData = [
+                    {
+                        "id": orderItem.product.id,
+                        "name": orderItem.product.name,
+                        "mainImg": orderItem.product.mainImg.url,
+                        "sku": orderItem.product.sku,
+                        "quantity": orderItem.quantity,
+                        "subtotal": "${:.2f}".format(
+                            orderItem.quantity * orderItem.product.salePrice
+                        ),
+                    }
+                    for orderItem in OrderItem.objects.filter(order=order)
+                ]
 
-            return Response(data, status=status.HTTP_200_OK)
+                data = {"orderData": orderData, "orderItemData": orderItemData}
+
+                return Response(data, status=status.HTTP_200_OK)
+            except:
+                return Response({"error": "error"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ReviewViews(APIView):
@@ -1000,11 +1050,11 @@ class ProductCarousel(APIView):
             {
                 "id": output.id,
                 "name": output.name,
-                "mainPrice": "{:.2f}Р".format(output.mainPrice),
-                "salePrice": "{:.2f}Р".format(output.salePrice),
+                "mainPrice": "${:.2f}".format(output.mainPrice),
+                "salePrice": "${:.2f}".format(output.salePrice),
                 "discount": output.discount,
                 "discountPercentage": "{}%".format(output.discountPercentage),
-                "mainImg": output.mainImg,
+                "mainImg": output.mainImg.url,
             }
             for output in products
         ]

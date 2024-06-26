@@ -84,7 +84,7 @@ class Customer(AbstractBaseUser, PermissionsMixin):
         ],
     )
     password = models.CharField(
-        max_length=25,
+        max_length=250,
         validators=[
             RegexValidator(
                 regex=r"^[A-Za-z\d!@#$%^&*()_+]+$",
@@ -97,7 +97,7 @@ class Customer(AbstractBaseUser, PermissionsMixin):
     profileImg = models.ImageField(blank=True, null=True, upload_to=upload_to)
 
     is_staff = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["email"]
@@ -111,7 +111,7 @@ class Customer(AbstractBaseUser, PermissionsMixin):
 class EmailChangeRequest(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     newEmail = models.EmailField()
-    confirmationKey = models.CharField(max_length=40)
+    confirmationKey = models.CharField(max_length=250)
     isConfirmed = models.BooleanField(default=False)
 
 
