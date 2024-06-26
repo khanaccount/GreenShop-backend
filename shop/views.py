@@ -119,8 +119,8 @@ class ProductView(APIView):
             {
                 "id": output.id,
                 "name": output.name,
-                "mainPrice": "${:.2f}".format(output.mainPrice),
-                "salePrice": "${:.2f}".format(output.salePrice),
+                "mainPrice": "{:.2f}".format(output.mainPrice),
+                "salePrice": "{:.2f}".format(output.salePrice),
                 "discount": output.discount,
                 "discountPercentage": output.discountPercentage,
                 "review": output.reviewCount,
@@ -217,9 +217,9 @@ class OrderView(APIView):
                 continue
             orderData = {
                 "id": order.id,
-                "subtotalPrice": "${:.2f}".format(order.subtotalPrice),
-                "shippingPrice": "${:.2f}".format(order.shippingPrice),
-                "totalPrice": "${:.2f}".format(order.totalPrice),
+                "subtotalPrice": "{:.2f}Р".format(order.subtotalPrice),
+                "shippingPrice": "{:.2f}Р".format(order.shippingPrice),
+                "totalPrice": "{:.2f}Р".format(order.totalPrice),
                 "product": [],
             }
             for orderItem in OrderItem.objects.filter(order=order):
@@ -267,7 +267,7 @@ class CartView(RetrieveUpdateDestroyAPIView):
                 "price": ProductSerializer(output.product).data.get("salePrice"),
                 "quantity": output.quantity,
                 "mainImg": ProductSerializer(output.product).data.get("mainImg"),
-                "totalPrice": "${:.2f}".format(
+                "totalPrice": "{:.2f}Р".format(
                     output.quantity * output.product.salePrice
                 ),
                 "sku": ProductSerializer(output.product).data.get("sku"),
@@ -276,22 +276,22 @@ class CartView(RetrieveUpdateDestroyAPIView):
             for output in orderItem
         ]
         pricesCart = {
-            "subtotalPrice": "${:.2f}".format(order.subtotalPrice),
-            "shippingPrice": "${:.2f}".format(order.shippingPrice),
-            "totalPrice": "${:.2f}".format(order.totalPrice),
+            "subtotalPrice": "{:.2f}Р".format(order.subtotalPrice),
+            "shippingPrice": "{:.2f}Р".format(order.shippingPrice),
+            "totalPrice": "{:.2f}Р".format(order.totalPrice),
             "isUsedCoupon": order.isUsedCoupon,
         }
 
         if order.coupon:
             pricesCart["isFreeDelivery"] = order.coupon.isFreeDelivery
             pricesCart["isDiscountCoupon"] = order.coupon.isDiscountCoupon
-            pricesCart["couponDiscount"] = "${:.2f}".format(
+            pricesCart["couponDiscount"] = "{:.2f}Р".format(
                 order.subtotalPrice - order.totalPrice + order.shippingPrice
             )
         else:
             pricesCart["isFreeDelivery"] = False
             pricesCart["isDiscountCoupon"] = False
-            pricesCart["couponDiscount"] = "0.00$"
+            pricesCart["couponDiscount"] = "0.00Р"
         return Response({"prices": pricesCart, "output": output})
 
 
@@ -821,8 +821,8 @@ class TransactionViews(APIView):
                 orderData = {
                     "id": order.id,
                     "date": transaction.date.strftime("%d %b, %Y"),
-                    "totalPrice": "${:.2f}".format(order.totalPrice),
-                    "shippingPrice": "${:.2f}".format(order.shippingPrice),
+                    "totalPrice": "{:.2f}Р".format(order.totalPrice),
+                    "shippingPrice": "{:.2f}Р".format(order.shippingPrice),
                     "paymentMethod": transaction.paymentMethod.name,
                 }
 
@@ -833,7 +833,7 @@ class TransactionViews(APIView):
                         "mainImg": orderItem.product.mainImg.url,
                         "sku": orderItem.product.sku,
                         "quantity": orderItem.quantity,
-                        "subtotal": "${:.2f}".format(
+                        "subtotal": "{:.2f}Р".format(
                             orderItem.quantity * orderItem.product.salePrice
                         ),
                     }
@@ -1050,8 +1050,8 @@ class ProductCarousel(APIView):
             {
                 "id": output.id,
                 "name": output.name,
-                "mainPrice": "${:.2f}".format(output.mainPrice),
-                "salePrice": "${:.2f}".format(output.salePrice),
+                "mainPrice": "{:.2f}Р".format(output.mainPrice),
+                "salePrice": "{:.2f}Р".format(output.salePrice),
                 "discount": output.discount,
                 "discountPercentage": "{}%".format(output.discountPercentage),
                 "mainImg": output.mainImg.url,
