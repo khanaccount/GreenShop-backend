@@ -152,7 +152,7 @@ class Product(models.Model):
         else:
             self.salePrice = self.mainPrice
         
-        self.create_product_quantity(self)
+        self.create_product_quantity()
 
         super(Product, self).save()
 
