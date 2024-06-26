@@ -29,14 +29,14 @@ class ProductSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         # Если очень хочется в одну строчку:
         # representation["mainPrice"] = "$" + str(representation["mainPrice"]) + "0" if len(str(representation["mainPrice"]).split(".")[1]) == 1 else "$" + str(representation["mainPrice"])
-        mainPrice = "$" + str(representation["mainPrice"])
-        salePrice = "$" + str(representation["salePrice"])
+        mainPrice = str(representation["mainPrice"]) + "Р"
+        salePrice = str(representation["salePrice"]) + "Р"
 
         if len(mainPrice.split(".")[1]) == 1:
-            mainPrice += "0"
+            mainPrice[:-2] += "0Р"
 
         if len(mainPrice.split(".")[1]) == 1:
-            mainPrice += "0"
+            mainPrice[:-2] += "0Р"
 
         representation["mainPrice"] = mainPrice
         representation["salePrice"] = salePrice
