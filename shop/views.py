@@ -119,8 +119,8 @@ class ProductView(APIView):
             {
                 "id": output.id,
                 "name": output.name,
-                "mainPrice": "{:.2f}".format(output.mainPrice),
-                "salePrice": "{:.2f}".format(output.salePrice),
+                "mainPrice": "{:.2f}Р".format(output.mainPrice),
+                "salePrice": "{:.2f}Р".format(output.salePrice),
                 "discount": output.discount,
                 "discountPercentage": output.discountPercentage,
                 "review": output.reviewCount,
@@ -172,7 +172,7 @@ class ProductCardView(APIView):
             {
                 "id": product.id,
                 "name": product.name,
-                "salePrice": "${:.2f}".format(product.salePrice),
+                "salePrice": "{:.2f}Р".format(product.salePrice),
                 "reviewCount": product.reviewCount,
                 "rating": product.rating,
                 "size": size,
@@ -230,7 +230,7 @@ class OrderView(APIView):
                         "sku": orderItem.product.sku,
                         "salePrice": orderItem.product.salePrice,
                         "quantity": orderItem.quantity,
-                        "totalPrice": "${:.2f}".format(
+                        "totalPrice": "{:.2f}Р".format(
                             orderItem.quantity * orderItem.product.salePrice
                         ),
                         "mainImg": orderItem.product.mainImg.url,
