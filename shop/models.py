@@ -151,7 +151,7 @@ class Product(models.Model):
             )
         else:
             self.salePrice = self.mainPrice
-            self.create_product_quantity()
+        self.create_product_quantity()
         super(Product, self).save()
 
     def update_reviews_info(self):
