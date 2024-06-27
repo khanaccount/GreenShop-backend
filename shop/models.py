@@ -163,13 +163,18 @@ class Product(models.Model):
         self.save()
 
     def create_product_quantity(self):
+        productQuantitys = ProductQuantity.objects.filter(product=self)
+
+        if len(productQuantitys) > 0:
+            return
+            
         sizes = self.size.all()
 
-        print(sizes)
 
         for size in sizes:
             productQuantity = ProductQuantity(product=self, size=size)
             productQuantity.save()
+            
 
 
 class ShippingAddress(models.Model):
