@@ -140,19 +140,17 @@ class Product(models.Model):
         if not self.sku:
             while True:
                 random_num = str(random.randint(10**12, 10**13 - 1))
-
                 if not Product.objects.filter(sku=random_num).exists():
                     self.sku = random_num
                     break
 
         if self.discount:
-            self.salePrice = round(
-                self.mainPrice * (1 - (self.discountPercentage / 100)), 2
-            )
+            self.salePrice = round(self.mainPrice * (1 - (self.discountPercentage / 100)), 2)
         else:
             self.salePrice = self.mainPrice
+
+        super(Product, self).save(*args, **kwargs)
         self.create_product_quantity()
-        super(Product, self).save()
 
     def update_reviews_info(self):
         reviews = Review.objects.filter(product=self)
@@ -164,17 +162,15 @@ class Product(models.Model):
         self.save()
 
     def create_product_quantity(self):
-        productQuantitys = ProductQuantity.objects.filter(product=self)
+        if self.pk:  # Ensure that the Product has been saved and has a primary key
+            productQuantities = ProductQuantity.objects.filter(product=self)
+            if productQuantities.exists():
+                return
 
-        if len(productQuantitys) > 0:
-            return
-            
-        sizes = self.size.all()
-
-
-        for size in sizes:
-            productQuantity = ProductQuantity(product=self, size=size)
-            productQuantity.save()
+            sizes = self.size.all()
+            for size in sizes:
+                productQuantity = ProductQuantity(product=self, size=size)
+                productQuantity.save()
             
 
 
